@@ -1,0 +1,16 @@
+# 建置產物
+CopyTool/bin/
+CopyTool/obj/
+
+# 真實工作資料／本機設定——不進公開 repo
+copy-tool-buttons.json
+copy-tool-settings.json
+copy-tool-window.txt
+copy-tool-group-order.txt
+
+# 打包好的免安裝壓縮檔（太大，不適合放進版本控制）
+*.zip
+
+# Visual Studio
+.vs/
+*.user

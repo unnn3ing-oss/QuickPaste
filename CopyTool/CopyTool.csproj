@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CopyTool</RootNamespace>
+    <AssemblyName>CopyTool</AssemblyName>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\AppIcon.ico"/>
+  </ItemGroup>
+
+  <!--
+    打包成免安裝單一 .exe（在有 dotnet SDK 的機器上執行），指令見 HANDOFF.md：
+    dotnet publish 加上 -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true
+  -->
+
+  <!-- 把上一層資料夾裡既有的真實按鈕資料一起複製到輸出目錄，跟執行檔放同一層
+       （對應舊版「資料檔放在執行檔同一個資料夾」的設計），開發時 dotnet run
+       也能直接沿用現有資料，不用手動搬檔案。這份資料是使用者的真實工作內容，
+       只在本機複製，不會被打包進原始碼控制。 -->
+  <ItemGroup>
+    <Content Include="..\copy-tool-buttons.json" Condition="Exists('..\copy-tool-buttons.json')">
+      <Link>copy-tool-buttons.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

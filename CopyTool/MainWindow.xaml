@@ -1,0 +1,388 @@
+<Window x:Name="RootWindow" x:Class="CopyTool.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:CopyTool.Converters"
+        Title="快速複製小工具" Height="240" Width="560" MinHeight="150" MinWidth="380"
+        Icon="Assets/AppIcon.ico"
+        Background="#ECF0F5" FontFamily="Microsoft JhengHei UI"
+        Closing="RootWindow_Closing">
+
+    <Window.Resources>
+        <!-- 藍色系配色：主色深鋼藍，輔助色（刪除偏冷紅、新增/成功偏冷綠）都跟主色協調，
+             跟舊版 WinForms 選定的配色一致（見 HANDOFF.md），這個顏色方向已經過使用者確認。 -->
+        <SolidColorBrush x:Key="BgBrush" Color="#ECF0F5"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#1E5691"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#164572"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#B03C46"/>
+        <SolidColorBrush x:Key="DangerHoverBrush" Color="#922E37"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#387A69"/>
+        <SolidColorBrush x:Key="SuccessHoverBrush" Color="#2A6254"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#1C2129"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#677282"/>
+        <SolidColorBrush x:Key="AppBorderBrush" Color="#D2DBE6"/>
+        <SolidColorBrush x:Key="BottomBarBrush" Color="#DBE3ED"/>
+
+        <conv:ChunkLabelConverter x:Key="ChunkLabelConverter"/>
+        <conv:ButtonHeightConverter x:Key="ButtonHeightConverter"/>
+
+        <!-- 主要「複製／新增／刪除」按鈕共用的圓角＋陰影＋Bold文字外觀。三個顏色版本
+             各自定義完整 ControlTemplate（不共用單一模板＋Tag 切色），因為 Tag 在實際
+             使用時已經拿來放資料項目（ButtonItem）給 Click 事件讀取，不能挪作他用。 -->
+        <Style x:Key="TileButtonBaseStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+
+        <Style x:Key="CopyButtonStyle" TargetType="Button" BasedOn="{StaticResource TileButtonBaseStyle}">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="10" Background="{TemplateBinding Background}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.25" Color="Black"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"
+                                               TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource TileButtonBaseStyle}">
+            <Setter Property="Background" Value="{StaticResource DangerBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="8" Background="{TemplateBinding Background}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.2" Color="Black"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"
+                                               TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource DangerHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SuccessButtonStyle" TargetType="Button" BasedOn="{StaticResource TileButtonBaseStyle}">
+            <Setter Property="Background" Value="{StaticResource SuccessBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="10" Background="{TemplateBinding Background}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.25" Color="Black"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"
+                                               TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource SuccessHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 次要按鈕（編輯／匯出／匯入／刪除／彈出視窗裡的排序鈕）樣式：白底、細邊框，
+             滑鼠移過去淡淡變色。 -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="6" Background="{TemplateBinding Background}"
+                                BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                               VerticalAlignment="Center"
+                                               Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource BgBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- 置頂圖示按鈕：現在浮在內容區右上角，不再放在專屬的白色工具列裡，
+             所以固定給一個白底＋陰影，不管疊在按鈕格還是編輯清單上面都看得清楚、
+             點得到；勾選（TopMost）時底色變成主色，搭配 tooltip 提示。 -->
+        <Style x:Key="PinToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" CornerRadius="8" Background="{TemplateBinding Background}"
+                                BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.25" Color="Black"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource BgBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 編輯模式卡片外框：白底＋圓角＋柔和陰影，做出跟背景分層的立體感。 -->
+        <Style x:Key="EditCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.15" Color="Black"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- 下方工具列：跟內容區視覺上獨立的區塊（不同底色 + 上緣色線）。
+             左邊：編輯／匯出／匯入。右邊：值班粉專篩選（含分類排序彈出視窗）緊接在
+             按鈕大小調整（－/px/＋）左邊。 -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource BottomBarBrush}"
+                BorderBrush="{StaticResource AccentBrush}" BorderThickness="0,2,0,0" Padding="8">
+            <DockPanel LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button x:Name="EditToggleButton" Content="編輯" Width="70" Height="30"
+                            Style="{StaticResource SecondaryButtonStyle}" Click="EditToggle_Click"/>
+
+                    <!-- 匯出／匯入合併成一顆按鈕節省空間，點下去彈出小選單選其中一個操作。 -->
+                    <Button Content="設定 ▾" Width="70" Height="30" Margin="6,0,0,0"
+                            Style="{StaticResource SecondaryButtonStyle}" Click="SettingsMenuButton_Click">
+                        <Button.ContextMenu>
+                            <ContextMenu Placement="Top">
+                                <MenuItem Header="匯出設定" Click="Export_Click"/>
+                                <MenuItem Header="匯入設定" Click="Import_Click"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <!-- 「值班：」文字改放 ToolTip 省空間，讓視窗可以縮得更小。 -->
+                    <Button x:Name="FilterToggle" Width="100" Height="30" ToolTip="值班粉專篩選（可複選）"
+                            Style="{StaticResource SecondaryButtonStyle}" Content="{Binding FilterButtonText}"
+                            HorizontalContentAlignment="Left" Click="FilterToggle_Click"/>
+
+                    <!-- 值班粉專篩選彈出視窗：每列一個勾選框＋↑↓排序鈕，取代單選 ComboBox，
+                         因為值班常常要同時顧兩個以上粉專，需要複選。用一般 Button 開關（而不是
+                         ToggleButton 綁 IsOpen）是為了避開 bool?/bool 雙向綁定的隱含轉換，直接
+                         在程式碼裡明確控制開/關，行為可預期。彈出方向改成向上（Placement=Top），
+                         因為按鈕現在在視窗最下方，往下彈會被螢幕邊緣擋住。 -->
+                    <Popup x:Name="FilterPopup" PlacementTarget="{Binding ElementName=FilterToggle}" Placement="Top"
+                           StaysOpen="False" AllowsTransparency="True">
+                        <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource AppBorderBrush}"
+                                BorderThickness="1" CornerRadius="8" Padding="8" MinWidth="248" Margin="4">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.2" Color="Black"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <Border BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" MaxHeight="224">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding FilterOptions}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Height="28">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="24"/>
+                                                            <ColumnDefinition Width="24"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <CheckBox Grid.Column="0" Content="{Binding Name}" Tag="{Binding Name}"
+                                                                  IsChecked="{Binding IsChecked, Mode=OneWay}"
+                                                                  Click="FilterCheckBox_Click"
+                                                                  VerticalAlignment="Center" Margin="4,0"/>
+                                                        <Button Grid.Column="1" Content="↑" Tag="{Binding Name}" Padding="0"
+                                                                IsEnabled="{Binding CanMoveUp}"
+                                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                                Click="FilterGroupUp_Click"/>
+                                                        <Button Grid.Column="2" Content="↓" Tag="{Binding Name}" Padding="0"
+                                                                IsEnabled="{Binding CanMoveDown}"
+                                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                                Click="FilterGroupDown_Click"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Border>
+                                <TextBlock Text="{Binding FilterHintText}" Foreground="{StaticResource MutedBrush}"
+                                           FontSize="11" TextWrapping="Wrap" Margin="2,6,2,6"/>
+                                <Button Content="清除（顯示全部）" Height="28" Style="{StaticResource SecondaryButtonStyle}"
+                                        Click="ClearFilter_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+
+                    <!-- 按鈕大小調整：－ [目前寬度px] ＋，緊接在值班篩選右邊，範圍 70–220px，
+                         結果會存檔延續。原本用全形「－」「＋」在小按鈕裡太細太小看不清楚，
+                         改用半形符號＋加粗加大字級。 -->
+                    <Button Content="-" Width="26" Height="30" Margin="10,0,0,0" FontSize="16" FontWeight="Bold"
+                            Style="{StaticResource SecondaryButtonStyle}" Click="SizeMinus_Click"/>
+                    <TextBlock Text="{Binding ButtonTileWidth, ElementName=RootWindow, StringFormat={}{0}px}"
+                               Width="36" TextAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{StaticResource MutedBrush}"/>
+                    <Button Content="+" Width="26" Height="30" FontSize="16" FontWeight="Bold"
+                            Style="{StaticResource SecondaryButtonStyle}" Click="SizePlus_Click"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!--
+            主內容區：一般模式顯示按鈕格（ViewScroller，左右滑動），編輯模式顯示可編輯清單
+            （EditScroller，維持直向捲動）。
+            左右滑動排版用 WrapPanel Orientation="Vertical" 放在「VerticalScrollBarVisibility=
+            Disabled、HorizontalScrollBarVisibility=Auto」的 ScrollViewer 裡：因為垂直方向被
+            Disabled，WPF 量測時會把 ScrollViewer 目前可見高度當成 WrapPanel 的高度上限傳進去，
+            WrapPanel 就會先往下排滿這個高度才換到右邊新的一欄，正好對應「按鈕先往下排滿可見
+            高度，排滿了才往右開新欄」的需求，不需要額外手動計算欄數。
+        -->
+        <Grid>
+            <ScrollViewer x:Name="ViewScroller" HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled" Visibility="Visible"
+                          PreviewMouseWheel="ViewScroller_PreviewMouseWheel">
+                <ItemsControl ItemsSource="{Binding VisibleItems}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Vertical"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource CopyButtonStyle}" Click="CopyButton_Click" Tag="{Binding}"
+                                    Width="{Binding ButtonTileWidth, ElementName=RootWindow}"
+                                    Height="{Binding ButtonTileWidth, ElementName=RootWindow, Converter={StaticResource ButtonHeightConverter}}">
+                                <TextBlock Text="{Binding Label, Converter={StaticResource ChunkLabelConverter}}"
+                                           TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="White" FontWeight="Bold" FontSize="16"/>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- 沒有按鈕，或篩選後沒有符合的分類時顯示的提示文字。 -->
+            <TextBlock Text="{Binding EmptyHintText}" Visibility="{Binding EmptyHintVisibility}"
+                       Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                       Margin="14,14,0,0"/>
+
+            <ScrollViewer x:Name="EditScroller" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                <StackPanel Margin="10">
+                    <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource EditCardStyle}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="10"/>
+                                                <ColumnDefinition Width="160"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="名稱" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                                <TextBox Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="分類（粉專）" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                                <ComboBox IsEditable="True" IsTextSearchEnabled="True" Margin="0,2,0,0"
+                                                          ItemsSource="{Binding GroupSuggestions, ElementName=RootWindow}"
+                                                          Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </StackPanel>
+
+                                            <Button Grid.Column="4" Content="刪除" Width="70" Height="24" VerticalAlignment="Bottom"
+                                                    Style="{StaticResource DangerButtonStyle}" Margin="0"
+                                                    Click="DeleteItem_Click" Tag="{Binding}"/>
+                                        </Grid>
+
+                                        <TextBlock Text="複製內容（可換行）" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,6,0,0"/>
+                                        <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True" TextWrapping="Wrap" Height="60"
+                                                 VerticalScrollBarVisibility="Auto" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="＋ 新增按鈕" Width="140" Height="34" HorizontalAlignment="Left"
+                            Style="{StaticResource SuccessButtonStyle}" Click="AddItem_Click"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- 置頂按鈕：浮在內容區右上角，不佔專屬的一整條工具列。加在 Grid 最後
+                 一個，Z-order 會蓋在 ViewScroller／EditScroller 上面。 -->
+            <ToggleButton x:Name="TopMostToggle" Width="30" Height="28" Margin="0,8,8,0"
+                          HorizontalAlignment="Right" VerticalAlignment="Top"
+                          Style="{StaticResource PinToggleStyle}" Content="📌" FontFamily="Segoe UI Emoji"
+                          IsChecked="{Binding Topmost, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                          ToolTip="視窗置頂"/>
+
+            <!-- 狀態提示（toast）：改成浮在內容區底部的小氣泡，平常 Collapsed 完全不佔版面，
+                 只有顯示訊息的那 1.4 秒才出現，不會像固定高度的狀態列一樣，平常留一條空白。 -->
+            <Border x:Name="StatusToast" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                    Margin="0,0,0,10" Background="{StaticResource AccentBrush}" CornerRadius="12" Padding="14,6">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3" Color="Black"/>
+                </Border.Effect>
+                <TextBlock x:Name="StatusLabel" Foreground="White" FontSize="12"/>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
