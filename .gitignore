@@ -14,3 +14,6 @@ copy-tool-group-order.txt
 # Visual Studio
 .vs/
 *.user
+
+# 打包輸出
+dist/

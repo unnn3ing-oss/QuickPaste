@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CopyTool.Converters;
 using CopyTool.Models;
 using CopyTool.Services;
 using Microsoft.Win32;
@@ -53,6 +54,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _settingsPath = Path.Combine(dir, "copy-tool-settings.json");
 
         _settings = SettingsStore.Load(_settingsPath);
+        _settings.GroupColors ??= new();
+        ((GroupColorConverter)FindResource("GroupColorConverter")).Colors = _settings.GroupColors;
         ApplyLoadedWindowSettings();
 
         foreach (var item in JsonStore.Load(_buttonsPath))
@@ -209,6 +212,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         PruneAndRefreshFilter();
 
+        // 新出現的分類自動配色（已有顏色的不動），有新增才存檔。
+        if (GroupColors.EnsureAssigned(GetDistinctGroups(), _settings.GroupColors)) { SaveSettings(); }
+
         var orderedGroups = OrderGroups(GetDistinctGroups());
         var groupRank = new Dictionary<string, int>();
         for (int i = 0; i < orderedGroups.Count; i++) { groupRank[orderedGroups[i]] = i; }
@@ -242,8 +248,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             EmptyHintVisibility = Visibility.Collapsed;
         }
 
-        GroupSuggestions.Clear();
-        foreach (var g in orderedGroups) { GroupSuggestions.Add(g); }
+        // 不能用 Clear() 再重加：Reset 會讓編輯模式的可編輯 ComboBox 把 Text 清成空字串
+        // 並寫回 Group，造成所有按鈕的分類被洗掉。改成只套用差異。
+        CollectionSync.Sync(GroupSuggestions, orderedGroups);
     }
 
     private void BuildFilterOptions()
@@ -290,17 +297,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ShowStatus("已複製到剪貼簿");
 
         // 按鈕本身短暫顯示「已複製 ✓」視覺回饋，700ms 後恢復原本文字/顏色。
-        if (button.Content is TextBlock tb)
+        // 回饋期間再點一次只複製、不重新啟動回饋，否則會把「已複製 ✓」當成原文字存起來。
+        if (button.Content is TextBlock tb && !CopyState.GetIsCopied(button))
         {
             string original = tb.Text;
-            Brush originalBackground = button.Background;
             tb.Text = "已複製 ✓";
-            button.Background = (Brush)FindResource("SuccessBrush");
+            CopyState.SetIsCopied(button, true);
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
             timer.Tick += (_, _) =>
             {
                 tb.Text = original;
-                button.Background = originalBackground;
+                CopyState.SetIsCopied(button, false);
                 timer.Stop();
             };
             timer.Start();
@@ -352,7 +359,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var dlg = new SaveFileDialog { Filter = "JSON 檔案 (*.json)|*.json", FileName = "copy-tool-buttons.json" };
         if (dlg.ShowDialog() == true)
         {
-            JsonStore.Save(dlg.FileName, new List<ButtonItem>(Items));
+            JsonStore.SaveExport(dlg.FileName, new List<ButtonItem>(Items), OrderGroups(GetDistinctGroups()));
             ShowStatus("已匯出設定檔");
         }
     }
@@ -364,10 +371,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         try
         {
-            var imported = JsonStore.Load(dlg.FileName);
+            // 先完整解析成功才動現有資料；舊格式（純陣列）沒有順序資訊，沿用目前的分類順序。
+            var imported = JsonStore.LoadExport(dlg.FileName);
             Items.Clear();
-            foreach (var item in imported) { AddItemWithAutoSave(item, save: false); }
+            foreach (var item in imported.Items) { AddItemWithAutoSave(item, save: false); }
+            if (imported.GroupOrder is not null) { _settings.GroupOrder = imported.GroupOrder; }
             SaveItems();
+            SaveSettings();
             RefreshAll();
             ShowStatus("已匯入設定");
         }
@@ -438,6 +448,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         UpdateFilterButtonText();
         RefreshAll();
         FilterPopup.IsOpen = false;
+    }
+
+    // 每次開啟應用程式，主畫面第一次畫好後詢問今天值班哪些粉專。
+    // 只有一個（或沒有）可篩選的分類時沒有選擇的意義，不跳出。
+    private void RootWindow_ContentRendered(object? sender, EventArgs e)
+    {
+        var options = GetFilterOptions();
+        if (options.Count < 2) { return; }
+
+        var dlg = new GroupPromptWindow(options) { Owner = this };
+        if (dlg.ShowDialog() != true) { return; }
+
+        _selectedGroups.Clear();
+        foreach (var group in dlg.SelectedGroups) { _selectedGroups.Add(group); }
+        UpdateFilterButtonText();
+        RefreshAll();
     }
 
     private void RootWindow_Closing(object? sender, CancelEventArgs e)
