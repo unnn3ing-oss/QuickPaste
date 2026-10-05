@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CopyTool.Converters;
 using CopyTool.Models;
 using CopyTool.Services;
 using Microsoft.Win32;
@@ -53,6 +54,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _settingsPath = Path.Combine(dir, "copy-tool-settings.json");
 
         _settings = SettingsStore.Load(_settingsPath);
+        _settings.GroupColors ??= new();
+        ((GroupColorConverter)FindResource("GroupColorConverter")).Colors = _settings.GroupColors;
         ApplyLoadedWindowSettings();
 
         foreach (var item in JsonStore.Load(_buttonsPath))
@@ -208,6 +211,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void RefreshAll()
     {
         PruneAndRefreshFilter();
+
+        // 新出現的分類自動配色（已有顏色的不動），有新增才存檔。
+        if (GroupColors.EnsureAssigned(GetDistinctGroups(), _settings.GroupColors)) { SaveSettings(); }
 
         var orderedGroups = OrderGroups(GetDistinctGroups());
         var groupRank = new Dictionary<string, int>();
@@ -442,6 +448,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         UpdateFilterButtonText();
         RefreshAll();
         FilterPopup.IsOpen = false;
+    }
+
+    // 每次開啟應用程式，主畫面第一次畫好後詢問今天值班哪些粉專。
+    // 只有一個（或沒有）可篩選的分類時沒有選擇的意義，不跳出。
+    private void RootWindow_ContentRendered(object? sender, EventArgs e)
+    {
+        var options = GetFilterOptions();
+        if (options.Count < 2) { return; }
+
+        var dlg = new GroupPromptWindow(options) { Owner = this };
+        if (dlg.ShowDialog() != true) { return; }
+
+        _selectedGroups.Clear();
+        foreach (var group in dlg.SelectedGroups) { _selectedGroups.Add(group); }
+        UpdateFilterButtonText();
+        RefreshAll();
     }
 
     private void RootWindow_Closing(object? sender, CancelEventArgs e)

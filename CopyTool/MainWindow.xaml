@@ -6,7 +6,7 @@
         Title="快速複製小工具" Height="240" Width="560" MinHeight="150" MinWidth="380"
         Icon="Assets/AppIcon.ico"
         Background="#ECF0F5" FontFamily="Microsoft JhengHei UI"
-        Closing="RootWindow_Closing">
+        Closing="RootWindow_Closing" ContentRendered="RootWindow_ContentRendered">
 
     <Window.Resources>
         <!-- 藍色系配色：主色深鋼藍，輔助色（刪除偏冷紅、新增/成功偏冷綠）都跟主色協調，
@@ -27,6 +27,7 @@
         <conv:TwoLineLabelConverter x:Key="TwoLineLabelConverter"/>
         <conv:ButtonHeightConverter x:Key="ButtonHeightConverter"/>
         <conv:TileFontSizeConverter x:Key="TileFontSizeConverter"/>
+        <conv:GroupColorConverter x:Key="GroupColorConverter"/>
 
         <!-- 主要「複製／新增／刪除」按鈕共用的圓角＋陰影＋Bold文字外觀。三個顏色版本
              各自定義完整 ControlTemplate（不共用單一模板＋Tag 切色），因為 Tag 在實際
@@ -48,8 +49,14 @@
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.25" Color="Black"/>
                             </Border.Effect>
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"
-                                               TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            <Grid>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,7,2,2"
+                                                   TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                <!-- 分類色帶：顏色由按鈕的分類（Tag 裡的 ButtonItem）決定，未分類時透明。
+                                     圓角跟外框頂端一致，貼齊按鈕上緣。 -->
+                                <Border Height="6" VerticalAlignment="Top" CornerRadius="10,10,0,0"
+                                        Background="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource GroupColorConverter}}"/>
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
