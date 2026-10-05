@@ -242,8 +242,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             EmptyHintVisibility = Visibility.Collapsed;
         }
 
-        GroupSuggestions.Clear();
-        foreach (var g in orderedGroups) { GroupSuggestions.Add(g); }
+        // 不能用 Clear() 再重加：Reset 會讓編輯模式的可編輯 ComboBox 把 Text 清成空字串
+        // 並寫回 Group，造成所有按鈕的分類被洗掉。改成只套用差異。
+        CollectionSync.Sync(GroupSuggestions, orderedGroups);
     }
 
     private void BuildFilterOptions()
