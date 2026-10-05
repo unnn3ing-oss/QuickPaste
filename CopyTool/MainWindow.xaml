@@ -23,7 +23,7 @@
         <SolidColorBrush x:Key="AppBorderBrush" Color="#D2DBE6"/>
         <SolidColorBrush x:Key="BottomBarBrush" Color="#DBE3ED"/>
 
-        <conv:ChunkLabelConverter x:Key="ChunkLabelConverter"/>
+        <conv:TwoLineLabelConverter x:Key="TwoLineLabelConverter"/>
         <conv:ButtonHeightConverter x:Key="ButtonHeightConverter"/>
 
         <!-- 主要「複製／新增／刪除」按鈕共用的圓角＋陰影＋Bold文字外觀。三個顏色版本
@@ -305,8 +305,9 @@
                             <Button Style="{StaticResource CopyButtonStyle}" Click="CopyButton_Click" Tag="{Binding}"
                                     Width="{Binding ButtonTileWidth, ElementName=RootWindow}"
                                     Height="{Binding ButtonTileWidth, ElementName=RootWindow, Converter={StaticResource ButtonHeightConverter}}">
-                                <TextBlock Text="{Binding Label, Converter={StaticResource ChunkLabelConverter}}"
+                                <TextBlock Text="{Binding Label, Converter={StaticResource TwoLineLabelConverter}}"
                                            TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           TextWrapping="Wrap"
                                            Foreground="White" FontWeight="Bold" FontSize="16"/>
                             </Button>
                         </DataTemplate>
