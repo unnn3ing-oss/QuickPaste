@@ -291,17 +291,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ShowStatus("已複製到剪貼簿");
 
         // 按鈕本身短暫顯示「已複製 ✓」視覺回饋，700ms 後恢復原本文字/顏色。
-        if (button.Content is TextBlock tb)
+        // 回饋期間再點一次只複製、不重新啟動回饋，否則會把「已複製 ✓」當成原文字存起來。
+        if (button.Content is TextBlock tb && !CopyState.GetIsCopied(button))
         {
             string original = tb.Text;
-            Brush originalBackground = button.Background;
             tb.Text = "已複製 ✓";
-            button.Background = (Brush)FindResource("SuccessBrush");
+            CopyState.SetIsCopied(button, true);
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
             timer.Tick += (_, _) =>
             {
                 tb.Text = original;
-                button.Background = originalBackground;
+                CopyState.SetIsCopied(button, false);
                 timer.Stop();
             };
             timer.Start();
