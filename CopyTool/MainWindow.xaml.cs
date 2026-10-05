@@ -353,7 +353,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var dlg = new SaveFileDialog { Filter = "JSON 檔案 (*.json)|*.json", FileName = "copy-tool-buttons.json" };
         if (dlg.ShowDialog() == true)
         {
-            JsonStore.Save(dlg.FileName, new List<ButtonItem>(Items));
+            JsonStore.SaveExport(dlg.FileName, new List<ButtonItem>(Items), OrderGroups(GetDistinctGroups()));
             ShowStatus("已匯出設定檔");
         }
     }
@@ -365,10 +365,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         try
         {
-            var imported = JsonStore.Load(dlg.FileName);
+            // 先完整解析成功才動現有資料；舊格式（純陣列）沒有順序資訊，沿用目前的分類順序。
+            var imported = JsonStore.LoadExport(dlg.FileName);
             Items.Clear();
-            foreach (var item in imported) { AddItemWithAutoSave(item, save: false); }
+            foreach (var item in imported.Items) { AddItemWithAutoSave(item, save: false); }
+            if (imported.GroupOrder is not null) { _settings.GroupOrder = imported.GroupOrder; }
             SaveItems();
+            SaveSettings();
             RefreshAll();
             ShowStatus("已匯入設定");
         }
