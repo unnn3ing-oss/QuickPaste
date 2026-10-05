@@ -36,6 +36,15 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 
 輸出位置：`CopyTool\bin\Release\net8.0-windows\win-x64\publish\CopyTool.exe`。這個 `.exe` 不需要另外安裝 .NET，可以直接帶到其他電腦使用。
 
+### 一鍵產出可攜版
+
+雙擊 repo 根目錄的 `publish.bat`（需要 .NET 8 SDK），會產出：
+
+- `dist\QuickPaste\`：`CopyTool.exe` 加資料檔，沒有 `.pdb`，整個資料夾可直接搬走使用。
+- `dist\QuickPaste-portable.zip`：同上內容的壓縮檔。
+
+repo 根目錄若有 `copy-tool-buttons.json`、`copy-tool-settings.json`，會一併放進去。
+
 ## 資料存放位置
 
 資料檔跟 `.exe` 放在**同一個資料夾**，整個資料夾一起帶著走就能搬家。
