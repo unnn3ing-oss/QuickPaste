@@ -2,11 +2,11 @@
 
 > ## ⬇️ 下載
 >
-> **[下載整包（main.zip）](https://github.com/unnn3ing-oss/QuickPaste/archive/refs/heads/main.zip)**
+> **[下載已編譯版（免安裝，約 67 MB）](https://github.com/unnn3ing-oss/QuickPaste/releases/latest/download/QuickPaste-portable.zip)**
 >
-> 解壓縮後，雙擊 `publish.bat` 就會產出免安裝版（需要先裝 [.NET 8 SDK](https://dotnet.microsoft.com/download)）。詳細步驟見下方[快速開始](#快速開始)。
+> 解壓縮後，把自己的 `copy-tool-buttons.json`、`copy-tool-settings.json` 放在 `CopyTool.exe` 旁邊，雙擊 `CopyTool.exe` 就能用。**不需要安裝 .NET，也不用編譯。**每次更新 `main` 都會在雲端自動重新編譯這個檔案。
 >
-> 目前沒有預先編譯好的 `.exe`，需要自己用 `publish.bat` 建置一次。
+> 想自己編譯或修改程式？[下載原始碼（main.zip）](https://github.com/unnn3ing-oss/QuickPaste/archive/refs/heads/main.zip)，裝好 [.NET 8 SDK](https://dotnet.microsoft.com/download) 後雙擊 `publish.bat`，見下方[自己編譯](#自己編譯)。
 
 一個給社群小編用的桌面小工具：把常用的文字（例如各粉專的 UTM 追蹤參數）做成按鈕，點一下就複製到剪貼簿。支援依粉專分類、值班時多選篩選，以及設定的匯出／匯入。
 
@@ -14,13 +14,11 @@
 
 ## 快速開始
 
-1. 安裝 [.NET 8 SDK](https://dotnet.microsoft.com/download)（要 **SDK**，不是 Runtime）。
-2. 點上方連結下載 `main.zip`，解壓縮。
-3. 雙擊資料夾裡的 `publish.bat`，等它跑完。
-4. 打開 `dist\QuickPaste\`，雙擊 `CopyTool.exe` 就能用。整個資料夾可以直接搬到其他電腦，不用安裝。
-   - `dist\QuickPaste-portable.zip` 是同樣內容的壓縮檔，方便傳給別人。
+1. 下載上方的已編譯版 zip，解壓縮到**有寫入權限的資料夾**（桌面、文件都可以，不要放在 `C:\Program Files`，因為資料檔會存在 `.exe` 旁邊）。
+2. 想沿用自己的按鈕與設定，把 `copy-tool-buttons.json`、`copy-tool-settings.json` 放進同一個資料夾。沒有的話，第一次執行會看到兩顆範例按鈕，進「編輯」模式改成自己的內容即可，資料檔會自動建立。
+3. 雙擊 `CopyTool.exe`。
 
-第一次執行會看到兩顆範例按鈕。進「編輯」模式改成自己的內容；資料檔會在你第一次編輯或關閉視窗時自動建立。
+整個資料夾可以直接搬到其他電腦，不用安裝。
 
 ## 功能
 
@@ -80,6 +78,19 @@
 - 新格式的匯出檔，舊版 `copy-tool.ps1` 讀不了，因為它只認純陣列。
 - 注意：匯出檔是「匯入用」的格式，**不能**直接改名當 `copy-tool-buttons.json` 放在 `.exe` 旁邊（那個檔案要是純按鈕陣列）。要搬資料請用「匯入設定」。
 
+## 自己編譯
+
+需要 [.NET 8 SDK](https://dotnet.microsoft.com/download)（要 **SDK**，不是 Runtime）。
+
+雙擊 repo 根目錄的 `publish.bat`，會產出：
+
+- `dist\QuickPaste\`：`CopyTool.exe`，沒有 `.pdb`，整個資料夾可直接搬走使用。
+- `dist\QuickPaste-portable.zip`：同樣內容的壓縮檔。
+
+repo 根目錄若有 `copy-tool-buttons.json`、`copy-tool-settings.json`，會一併放進去。
+
+公司電腦不能裝 SDK 也沒關係：編譯是在別台電腦（或直接用上方的已編譯版）做，產出的 `.exe` 已內含執行環境，拿去公司不用安裝任何東西。
+
 ## 自己開發／除錯
 
 ```
@@ -101,7 +112,7 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 **雙擊 `CopyTool.exe` 出現「Windows 已保護您的電腦」？**
 這個程式沒有數位簽章，從網路下載或傳給別人時，Windows SmartScreen 可能會擋。按「其他資訊」→「仍要執行」即可。
 
-**`publish.bat` 說找不到 .NET SDK？**
+**`publish.bat` 說找不到 .NET SDK？**（只有自己編譯才會遇到）
 安裝 [.NET 8 SDK](https://dotnet.microsoft.com/download)（不是 Runtime），裝完重新開啟視窗再執行。
 
 **打包出來的 `.exe` 很大（約 150 MB）？**
@@ -131,7 +142,7 @@ HANDOFF.md               開發交接文件與功能規格
 
 - 僅支援 Windows（WPF）。
 - 專案目前沒有自動化測試。
-- 沒有預先編譯好的 `.exe`，需要自己用 `publish.bat` 建置。
+- 程式沒有數位簽章，Windows SmartScreen 可能攔截，見下方常見問題。
 
 ## 授權
 

@@ -63,6 +63,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             AddItemWithAutoSave(item, save: false);
         }
 
+        AssignGroupColors();
         RefreshAll();
     }
 
@@ -163,6 +164,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         return result;
     }
 
+    // 幫新出現的分類自動配色（已有顏色的不動），有新增才存檔。
+    // 只能在分類名稱穩定的時間點呼叫：啟動、離開編輯模式、匯入之後。
+    // 不能放進 RefreshAll：編輯時每個按鍵都會觸發它，打字途中的暫時名稱
+    // （例如打到一半的「I」）會被配色並永久存進設定檔。
+    private void AssignGroupColors()
+    {
+        if (GroupColors.EnsureAssigned(GetDistinctGroups(), _settings.GroupColors)) { SaveSettings(); }
+    }
+
     private List<string> GetFilterOptions()
     {
         var options = OrderGroups(GetDistinctGroups());
@@ -211,9 +221,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void RefreshAll()
     {
         PruneAndRefreshFilter();
-
-        // 新出現的分類自動配色（已有顏色的不動），有新增才存檔。
-        if (GroupColors.EnsureAssigned(GetDistinctGroups(), _settings.GroupColors)) { SaveSettings(); }
 
         var orderedGroups = OrderGroups(GetDistinctGroups());
         var groupRank = new Dictionary<string, int>();
@@ -324,6 +331,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (!_editMode)
         {
             SaveItems();
+            AssignGroupColors();
             RefreshAll();
             ShowStatus("已儲存");
         }
@@ -378,6 +386,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (imported.GroupOrder is not null) { _settings.GroupOrder = imported.GroupOrder; }
             SaveItems();
             SaveSettings();
+            AssignGroupColors();
             RefreshAll();
             ShowStatus("已匯入設定");
         }
