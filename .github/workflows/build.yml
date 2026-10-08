@@ -1,0 +1,56 @@
+# 在雲端（Windows）自動編譯並打包成免安裝版。
+#   - 每次推到 main 或 claude/** 分支，或手動執行時都會建置，成品放在該次執行的 Artifacts。
+#   - 只有推到 main 時，才會更新 Releases 裡標記為 "latest" 的版本，
+#     README 最上方的「下載已編譯版」連結指向它。
+# 打包參數要跟 publish.bat 保持一致。
+name: Build portable package
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish (self-contained, single file)
+        shell: pwsh
+        run: |
+          dotnet publish CopyTool/CopyTool.csproj -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None -p:DebugSymbols=false -o dist/QuickPaste
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Remove-Item dist/QuickPaste/*.pdb -ErrorAction SilentlyContinue
+          Compress-Archive -Path dist/QuickPaste/* -DestinationPath dist/QuickPaste-portable.zip -Force
+          Get-ChildItem dist/QuickPaste, dist/QuickPaste-portable.zip | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QuickPaste-portable
+          path: dist/QuickPaste-portable.zip
+
+      - name: Update the "latest" release (main only)
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag --yes 2>$null
+          gh release create latest dist/QuickPaste-portable.zip `
+            --title "QuickPaste 最新版（自動建置）" `
+            --notes "每次更新 main 都會自動重新編譯。解壓縮後，把自己的 copy-tool-buttons.json 與 copy-tool-settings.json 放在 CopyTool.exe 旁邊，雙擊 CopyTool.exe 即可使用。" `
+            --target $env:GITHUB_SHA
